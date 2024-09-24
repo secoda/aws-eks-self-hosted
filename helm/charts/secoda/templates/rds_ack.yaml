@@ -1,0 +1,66 @@
+{{ $val := .Values.services.rds -}}
+{{ $globals := .Values.global -}}
+{{ $datastores := .Values.datastores -}}
+{{ $chartVersion := .Chart.AppVersion -}}
+{{- $fullName := include "secoda.fullname" . -}}
+apiVersion: rds.services.k8s.aws/v1alpha1
+kind: DBInstance
+metadata:
+  name: "{{ $fullName }}-rds"
+spec:
+  allocatedStorage: {{ $val.rds_storage }}
+  dbInstanceClass: {{ $val.rds_instance }}
+  dbInstanceIdentifier: "{{ $fullName }}-rds"
+  engine: postgres
+  engineVersion: "{{ $val.rds_version }}"
+  masterUsername: "keycloak"
+  masterUserPassword:
+    name: "secoda-keycloak-password"
+    key: DB_PASSWORD
+  dbName: "keycloak"
+  autoMinorVersionUpgrade: true
+  backupRetentionPeriod: {{ $val.rds_backup_retention }}
+  dbSubnetGroupName: {{ $val.rds_subnet_group }}
+  deletionProtection: {{ $val.rds_deletion_protection }}
+  multiAZ: {{ $val.rds_multiAz }}
+  publiclyAccessible: false
+  storageEncrypted: true
+  storageType: gp2
+  vpcSecurityGroupIDs:
+    - {{ $val.rds_sg }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ $fullName }}-rds-conn-cm"
+data: {}
+---
+apiVersion: services.k8s.aws/v1alpha1
+kind: FieldExport
+metadata:
+  name: "{{ $fullName }}-rds-host"
+spec:
+  to:
+    name: "{{ $fullName }}-rds-conn-cm"
+    kind: configmap
+  from:
+    path: ".status.endpoint.address"
+    resource:
+      group: rds.services.k8s.aws
+      kind: DBInstance
+      name: "{{ $fullName }}-rds"
+---
+apiVersion: services.k8s.aws/v1alpha1
+kind: FieldExport
+metadata:
+  name: "{{ $fullName }}-rds-port"
+spec:
+  to:
+    name: "{{ $fullName }}-rds-conn-cm"
+    kind: configmap
+  from:
+    path: ".status.endpoint.port"
+    resource:
+      group: rds.services.k8s.aws
+      kind: DBInstance
+      name: "{{ $fullName }}-rds"

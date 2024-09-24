@@ -1,0 +1,74 @@
+{{ $val := .Values.services.redis -}}
+{{ $globals := .Values.global -}}
+{{ $datastores := .Values.datastores -}}
+{{ $chartVersion := .Chart.AppVersion -}}
+{{- $fullName := include "secoda.fullname" . -}}
+apiVersion: elasticache.services.k8s.aws/v1alpha1
+kind: CacheParameterGroup
+metadata:
+  name: "{{ $fullName }}-redis-parametergroup"
+spec:
+  cacheParameterGroupFamily: redis6.x
+  cacheParameterGroupName: "{{ $fullName }}-redis-parametergroup"
+  description: "Secoda app Redis parameter group"
+  parameterNameValues:
+  - parameterName: "maxmemory-policy"
+    parameterValue: "allkeys-lru"
+---
+apiVersion: elasticache.services.k8s.aws/v1alpha1
+kind: ReplicationGroup
+metadata:
+  name: "{{ $fullName }}-redis"
+spec:
+  atRestEncryptionEnabled: true
+  autoMinorVersionUpgrade: false
+    #cacheClusterID: "{{ $fullName }}-redis"
+  cacheNodeType: {{ $val.redis_instance }}
+  cacheParameterGroupName: "{{ $fullName }}-redis-parametergroup"
+  cacheSubnetGroupName: {{ $val.redis_subnetgroup }}
+  description: "Secoda Redis Cluster"
+  engine: redis
+  engineVersion: 6.x
+  multiAZEnabled: false
+  numNodeGroups: 1
+  replicasPerNodeGroup: 0
+  replicationGroupID: "{{ $fullName }}-redis-replicationgroup"
+  securityGroupIDs:
+  - {{ $val.redis_sg }}
+  transitEncryptionEnabled: false
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ $fullName }}-redis-conn-cm"
+data: {}
+---
+apiVersion: services.k8s.aws/v1alpha1
+kind: FieldExport
+metadata:
+  name: "{{ $fullName }}-redis-host"
+spec:
+  to:
+    name: "{{ $fullName }}-redis-conn-cm"
+    kind: configmap
+  from:
+    path: ".status.nodeGroups[0].primaryEndpoint.address"
+    resource:
+      group: elasticache.services.k8s.aws
+      kind: ReplicationGroup
+      name: "{{ $fullName }}-redis"
+---
+apiVersion: services.k8s.aws/v1alpha1
+kind: FieldExport
+metadata:
+  name: "{{ $fullName }}-redis-port"
+spec:
+  to:
+    name: "{{ $fullName }}-redis-conn-cm"
+    kind: configmap
+  from:
+    path: ".status.nodeGroups[0].primaryEndpoint.port"
+    resource:
+      group: elasticache.services.k8s.aws
+      kind: ReplicationGroup
+      name: "{{ $fullName }}-redis"

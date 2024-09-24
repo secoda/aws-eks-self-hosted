@@ -1,0 +1,115 @@
+{{ $val := .Values.services.frontend -}}
+{{ $globals := .Values.global -}}
+{{ $datastores := .Values.datastores -}}
+{{ $proxy := .Values.cloudSqlAuthProxy -}}
+{{ $chartVersion := .Chart.AppVersion -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "secoda.fullname" . }}
+  annotations: 
+    {{- toYaml .Values.annotations | nindent 4 }}
+  labels:
+    {{- include "secoda.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      {{- include "secoda.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "secoda.selectorLabels" . | nindent 8 }}
+    spec:
+      imagePullSecrets:
+        - name: secoda-dockerhub
+      serviceAccountName: {{ include "secoda.serviceAccountName" . }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        - name: init-secoda
+          image: alpine:3.20
+          command: ['sh', '-c', 'apk --update add curl jq && until curl -s --cacert /var/run/secrets/kubernetes.io/serviceaccount/ca.crt --header "Authorization: Bearer $(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" -X GET https://${KUBERNETES_SERVICE_HOST}/api/v1/namespaces/secoda/configmaps | jq .items[].data | [ $(grep -c -e "secoda-opensearch-host" -e "secoda-rds-host" -e "secoda-redis-host" -e "secoda-s3-bucket") -eq 4 ]; do sleep 30; echo "30s poll for service availability"; done']
+      containers:
+        - name: frontend
+          {{- with (merge $globals.securityContext $val.securityContext) }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ coalesce $val.image.registry $globals.image.registry }}/{{ coalesce $val.image.name $globals.image.name }}:{{ coalesce $val.image.tag $globals.image.tag $chartVersion }}"
+          imagePullPolicy: {{ coalesce $val.image.pullPolicy $globals.image.pullPolicy }}
+          {{- with $val.command }}
+          command: {{ . }}
+          {{ end }}
+          {{- with  coalesce $val.args }}
+          args: {{ . }}
+          {{ end }}
+          env: 
+          {{- with (compact (concat $globals.env $val.env)) }}
+             {{- toYaml . | nindent 10 }}
+          {{ end }}
+          - name: VITE_NEW_AUTH
+            value: "true"
+          - name: API_ENDPOINT
+            valueFrom:
+            value: apisvc
+          - name: APISERVICE_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: "secoda-keycloak-password"
+                key: APISERVICE_SECRET
+          - name: PUBLIC_KEY
+            valueFrom:
+              secretKeyRef:
+                name: "secoda-keycloak-password"
+                key: PUBLIC_KEY
+          - name: PRIVATE_KEY
+            valueFrom:
+              secretKeyRef:
+                name: "secoda-keycloak-password"
+                key: PRIVATE_KEY
+          {{- with $val.ports }}
+          ports: 
+           {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $val.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $val.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $val.startupProbe }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml $val.resources | nindent 12 }}
+      {{- with .Values.dnsConfig }}
+      dnsConfig:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelectorFrontend }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

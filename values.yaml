@@ -1,0 +1,35 @@
+ingress:
+  enabled: true
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/backend-protocol: HTTPS
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+    #alb.ingress.kubernetes.io/healthcheck-protocol: HTTPS
+    #alb.ingress.kubernetes.io/healthcheck-port: traffic-port
+    #alb.ingress.kubernetes.io/healthcheck-path: /healthcheck
+    #alb.ingress.kubernetes.io/healthcheck-interval-seconds: '20'
+    #alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '8'
+    #alb.ingress.kubernetes.io/success-codes: '200'
+    #alb.ingress.kubernetes.io/healthy-threshold-count: '2'
+    #alb.ingress.kubernetes.io/unhealthy-threshold-count: '3'
+    #alb.ingress.kubernetes.io/target-group-attributes: slow_start.duration_seconds=120
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+nodeSelectorApi: {}
+
+# General-purpose
+
+env:
+  - name: IS_MANAGED
+    value: "true"

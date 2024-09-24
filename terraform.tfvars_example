@@ -1,0 +1,29 @@
+# Secoda will provide you a dockerhub password
+docker_password = "REQUIRED- PROVIDED BY SECODA"
+
+# Set region and vpc_azs to match
+region = "us-west-1"
+vpc_azs = ["us-west-1b", "us-west-1c"]
+
+# Limit email address domains that are allowed to log in to Secoda. Domains separated by
+# double backslashed comma \\, to escape for helm parsing 
+authorized_domains = "domain1.customer.com\\,domain2.customer.com\\,domain.customer.org"
+
+# Set the FQDN for your Secoda server. This will be used to provision an ACM SSL certificate
+# and configure routing for the ALB ingress
+fqdn = "secoda.customer.com"
+
+# Set this to use a pre-generated and approved ACM certificate. If it is not set
+# a certificate request will be generated for the fqdn
+# acm_lb_cert_arn = "arn:aws:acm:us-west-1:998877665544:certificate/0735413a-8408-430e-8fb3-086245750c05"
+
+# Instance sizing to override defaults for more resources in containers and supporting services
+# rds_instance = "db.t4g.small"
+# rds_multi_az = false
+# redis_instance = "cache.t4g.medium"
+# es_instance = "t3.medium.search"
+# api_limits_cpu = "2048m"
+# api_requests_cpu = "2048m"
+# api_limits_mem = "20480Mi"
+# api_requests_mem = "20480Mi"
+

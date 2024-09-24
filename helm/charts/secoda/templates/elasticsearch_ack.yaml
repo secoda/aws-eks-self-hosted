@@ -1,0 +1,81 @@
+{{ $val := .Values.services.es -}}
+{{ $globals := .Values.global -}}
+{{ $datastores := .Values.datastores -}}
+{{ $chartVersion := .Chart.AppVersion -}}
+{{- $fullName := include "secoda.fullname" . -}}
+apiVersion: opensearchservice.services.k8s.aws/v1alpha1
+kind: Domain
+metadata:
+  name: "{{ $fullName }}-opensearch"
+spec:
+  name: "{{ $fullName }}-opensearch"
+  engineVersion: "OpenSearch_2.11"
+  clusterConfig:
+    instanceType: {{ $val.es_instance }}
+    instanceCount: {{ $val.es_replicas }}
+  ebsOptions:
+    ebsEnabled: true
+    volumeSize: {{ $val.es_volume_size }}
+    volumeType: gp3
+    throughput: 256
+    iops: 3000
+  # encryptionAtRestOptions.enabled, domainEndpointOptions.enforceHTTPS
+  # nodeToNodeEncryptionOptions.enabled need to be set in order to use
+  # advancedSecurityOptions...
+  domainEndpointOptions:
+    enforceHTTPS: true
+    tlsSecurityPolicy: "Policy-Min-TLS-1-2-2019-07"
+  encryptionAtRestOptions:
+    enabled: true
+  nodeToNodeEncryptionOptions:
+    enabled: true
+  vpcOptions:
+    subnetIDs:
+      - {{ $val.es_subnet }}
+    securityGroupIDs:
+      - {{ $val.es_sg }}
+  advancedSecurityOptions:
+    enabled: true
+    internalUserDatabaseEnabled: true
+    masterUserOptions:
+      masterUserName: elastic
+      masterUserPassword:
+        name: secoda-keycloak-password
+        key: ES_PASSWORD
+  accessPolicies: "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":\"*\",\"Action\":[\"es:*\"],\"Resource\":\"arn:aws:es:{{ $val.es_region }}:{{ $val.es_acct_id }}:domain/{{ $fullName }}-opensearch/*\"}]}"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ $fullName }}-opensearch-conn-cm"
+data: {}
+---
+apiVersion: services.k8s.aws/v1alpha1
+kind: FieldExport
+metadata:
+  name: "{{ $fullName }}-opensearch-host"
+spec:
+  to:
+    name: "{{ $fullName }}-opensearch-conn-cm"
+    kind: configmap
+  from:
+    path: ".status.endpoints.vpc"
+    resource:
+      group: opensearchservice.services.k8s.aws
+      kind: Domain
+      name: "{{ $fullName }}-opensearch"
+---
+apiVersion: services.k8s.aws/v1alpha1
+kind: FieldExport
+metadata:
+  name: "{{ $fullName }}-opensearch-user"
+spec:
+  to:
+    name: "{{ $fullName }}-opensearch-conn-cm"
+    kind: configmap
+  from:
+    path: ".spec.advancedSecurityOptions.masterUserOptions.masterUsername"
+    resource:
+      group: opensearchservice.services.k8s.aws
+      kind: Domain
+      name: "{{ $fullName }}-opensearch"

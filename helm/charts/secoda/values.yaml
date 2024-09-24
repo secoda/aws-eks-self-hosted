@@ -1,0 +1,114 @@
+# Default values for secoda.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+services:
+  api:
+    image:
+      registry: ""
+      name: "on-premise-api"
+      pullPolicy: ""
+      tag: ""
+    env: []
+    ports:
+      - containerPort: 5007
+    resources:
+      requests:
+        memory: 16384Mi
+        cpu: 2048m
+        ephemeral-storage: 9Gi
+      limits:
+        memory: 16384Mi
+        cpu: 2048m
+        ephemeral-storage: 9Gi
+    livenessProbe:
+      tcpSocket:
+        port: 5007
+      timeoutSeconds: 10
+    readinessProbe:
+      tcpSocket:
+        port: 5007
+      timeoutSeconds: 10
+    startupProbe:
+      tcpSocket:
+        port: 5007
+      failureThreshold: 30
+      periodSeconds: 30
+    securityContext: {}
+
+  frontend:
+    image:
+      registry: ""
+      name: "on-premise-frontend"
+      pullPolicy: ""
+      tag: ""
+    args: []
+    env: []
+    ports:
+      - name: https
+        containerPort: 443
+      - name: http
+        containerPort: 80
+    resources:
+      requests:
+        memory: 1024Mi
+        cpu: 512m
+        ephemeral-storage: 4Gi
+      limits:
+        memory: 1024Mi
+        cpu: 512m
+        ephemeral-storage: 4Gi
+    livenessProbe:
+      tcpSocket:
+        port: 5006
+      initialDelaySeconds: 30
+      timeoutSeconds: 5
+    readinessProbe:
+      tcpSocket:
+        port: 5006
+      initialDelaySeconds: 30
+      timeoutSeconds: 5
+    securityContext: {}
+
+global:
+  image:
+    registry: "secoda"
+    pullPolicy: Always
+    tag: "latest"
+  env: []
+  resources: {}
+  securityContext:
+    {}
+    # allowPrivilegeEscalation: false
+
+persistence:
+  enabled: false
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: false
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  {}
+  # fsGroup: 2000
+
+service:
+  type: NodePort
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+dnsConfig: {}
+annotations: {}

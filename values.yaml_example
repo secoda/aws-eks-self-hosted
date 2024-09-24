@@ -1,0 +1,79 @@
+# Full values.yaml to run just the helm chart without using terraform to set up the full environment
+
+datastores:
+  secoda:
+    authorized_domains: secoda.co
+env:
+- name: IS_MANAGED
+  value: "true"
+ingress:
+  annotations:
+    alb.ingress.kubernetes.io/backend-protocol: HTTPS
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-west-1:998877665544:certificate/0735413a-8408-430e-8fb3-086245750c05
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/load-balancer-name: secoda-lb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    alb.ingress.kubernetes.io/target-type: ip
+  enabled: true
+  hosts: ekstest.dev.secoda.co
+logging:
+  group: secoda-logs
+  prefix: secoda-
+  region: us-west-1
+  retention: 60
+nodeSelectorApi: {}
+serviceAccount:
+  annotations: {}
+  create: true
+  name: secoda
+  namespace: secoda
+  role_arn: arn:aws:iam::998877665544:role/secoda_secoda_instance_profile
+services:
+  api:
+    image:
+      name: on-premise-api
+      registry: secoda
+    resources:
+      limits:
+        cpu: 2048m
+        memory: 20480Mi
+      requests:
+        cpu: 2048m
+        memory: 20480Mi
+  es:
+    es_acct_id: 998877665544
+    es_instance: t3.medium.search
+    es_region: us-west-1
+    es_replicas: 1
+    es_sg: sg-086ac13e6d7dbddf6
+    es_subnet: subnet-045689a4064a35d2e
+    es_volume_size: 96
+  frontend:
+    image:
+      name: on-premise-frontend
+      registry: secoda
+    resources:
+      limits:
+        cpu: 512m
+        memory: 2048Mi
+      requests:
+        cpu: 512m
+        memory: 2048Mi
+  rds:
+    rds_backup_retention: 21
+    rds_deletion_protection: true
+    rds_instance: db.t4g.small
+    rds_multiAz: false
+    rds_sg: sg-0545689a4068680f4
+    rds_storage: 256
+    rds_subnet_group: secoda
+    rds_version: 14
+  redis:
+    redis_instance: cache.t4g.medium
+    redis_sg: sg-0545689a4065bc2c0
+    redis_subnetgroup: secoda
+  s3:
+    s3_name: secoda-private-42a6736d-42a
+    s3_region: us-west-1
+
